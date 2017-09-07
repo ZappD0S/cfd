@@ -3,7 +3,9 @@
 #include <math.h>
 #include <float.h>
 
-// gcc -shared -o intersections_number.so -fPIC intersections_number.c `gsl-config --cflags --libs`
+// gcc -fPIC -O2 intersections_number.c -shared -o ../../bin/intersections_number.so
+
+// OLD: gcc -shared -o intersections_number.so -fPIC intersections_number.c `gsl-config --cflags --libs`
 
 #define dot2D(v, w) ((v[0])*(w[0]) + (v[1])*(w[1]))
 #define cross2D(v, w) ((v[0])*(w[1]) - (v[1])*(w[0]))

@@ -1,13 +1,13 @@
 import numpy as np
 from scipy.sparse import coo_matrix
 from scipy.sparse.linalg import factorized
-from cfd.utils import build_inlet_vels, clockwise, ds_dict
-from cfd.C.VelFieldSpline import VelFieldSpline
-from cfd.AnisotropicP import AnisotropicP
+from utils import build_inlet_vels, clockwise, ds_dict
+from VelFieldSplines import VelFieldSplines
+from AnisotropicP import AnisotropicP
 import matplotlib.pyplot as plt
 assert plt
 
-
+# TODO: rename FluidFlow?
 class Solver:
 
     def __init__(self, data, dt, vel0, margin=0.2,  decay_magnitude=1e-6):
@@ -15,22 +15,20 @@ class Solver:
         self.data = data
         self.dx = data.dx
         self.dt = dt
-        self.inlet_vel = 0
+        self.inlet_vel = vel0
         self.margin = margin
         self.decay_magnitude = decay_magnitude
 
         self._uv = np.zeros((2, *self.shape), dtype=np.double)
         self._default_inlet_vels = build_inlet_vels(self.shape, margin)
-        self.update_inlet_vels(vel0)
+        self._init_inlet_vels()
 
-        self.vf_spline = VelFieldSpline(self.shape, dt/self.dx)
+        self._wallvels_set = [np.empty((2, len(midpts)), dtype=np.double)
+                              for midpts in self.data.midpts_set]
 
-        self._wall_vels_set = [[np.empty(len(midpts), dtype=np.double)
-                                for dim in range(2)]
-                               for midpts in self.data.midpts_set]
-
-        self.vf_spline.init_vels(self._uv).init_wall_vels(
-            self._wall_vels_set, self.data.midpts_set)
+        self.vfsplines = VelFieldSplines(self.shape, dt/self.dx)
+        self.vfsplines.init_vels(self._uv).init_data(
+            self._wallvels_set, self.data.midpts_set)
 
         self._system_indices = data.build_indices(data.is_system)
         self._n_sc = data.n_indices(self._system_indices)
@@ -51,6 +49,9 @@ class Solver:
 
         self._build_p_matrix()
         self._LUsolve = factorized(self._p_mat)
+
+    # TODO: in the building functions, should we use dicts to store data?
+    # Initialization functions
 
     def _build_p_matrix(self):
         rows, cols, vals = [], [], []
@@ -77,9 +78,9 @@ class Solver:
                                  shape=(self._n_sc, self._n_sc)).tocsc()
 
     def _build_div_matrices(self):
-        row_set = [[] for _ in range(2)]
-        col_set = [[] for _ in range(2)]
-        val_set = [[] for _ in range(2)]
+        row_set = [[], []]
+        col_set = [[], []]
+        val_set = [[], []]
 
         for i in range(self.ny):
             for j in range(self.nx):
@@ -129,14 +130,6 @@ class Solver:
                     (val_set[n], (row_set[n], col_set[n])),
                     shape=(size, size)).tocsc())
 
-    def update_inlet_vels(self, vel):
-        if vel != 0 and self.inlet_vel == 0:
-            self.inlet_vel = vel
-            self._init_inlet_vels()
-        else:
-            self._uv[0][:, 0] = vel*self._default_inlet_vels
-            self.inlet_vel = vel
-
     def _init_inlet_vels(self):
         tau = -self.nx/(20*np.log(self.decay_magnitude))
         n = 0
@@ -148,17 +141,26 @@ class Solver:
             if vel < self.decay_magnitude:
                 break
 
+    # Update functions
+
+    def update_inlet_vels(self, vel):
+        if vel and not self.inlet_vel:
+            self._init_inlet_vels()
+        else:
+            self._uv[0][:, 0] = vel*self._default_inlet_vels
+        self.inlet_vel = vel
+
     def _update_div(self):
         self.div[self.data.system_cells] = sum(self._div_mats[dim].dot(
                                 self._uv[dim][self.data.fluid_cells])
                             for dim in range(2))
 
-        self.vf_spline.update_wall_vels()
+        self.vfsplines.update_wallvels()
         for dim in range(2):
             for n in range(self.data.max_n_ws):
                 self.div[self.data.midpts_cells_set[n]] += \
                     self._wall_div_mats[n][dim].dot(
-                        self._wall_vels_set[n][dim])
+                        self._wallvels_set[n][dim])
 
     def project(self):
         self.anis_p.compute_solver_bnd_p(self._bnd_p)
@@ -173,8 +175,13 @@ class Solver:
         self._update_div()
 
     def advect(self):
-        self.vf_spline.advect_vels()
+        self.vfsplines.advect_vels()
         self._update_div()
+
+    def close(self):
+        self.vfsplines.close()
+
+    # Getter functions
 
     def get_magnitude_field(self):
         return np.sqrt(self._uv[0]**2 + self._uv[1]**2)[1:-1, 1:-1]

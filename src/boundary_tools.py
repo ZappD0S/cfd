@@ -2,9 +2,10 @@ import numpy as np
 from math import ceil, floor
 from itertools import product
 from functools import cmp_to_key
-from zapplib.pairs import pairs
-from cfd.C.boundary_tools_utils import intersections_number
+from ctypes import CDLL, c_double, c_int, c_ulong
+from utils import pairs, build_c_vecs
 
+inters_num_lib = CDLL('../bin/intersections_number.so')
 
 clockwise_inds = [(0, 0), (0, 1), (1, 1), (1, 0)]
 clockwise_ds = [(0, -1), (1, 1), (0, 1), (1, -1)]
@@ -256,6 +257,22 @@ def get_dim_sign(P, center, cell_bounds):
         return ds_set[0]
     else:
         raise ValueError('error!')
+
+
+def intersections_number(normal, P0, pts):
+    # TODO: if possible, change or remove this part.
+    global current_pts, c_pts
+    if 'current_pts' not in globals() or pts != current_pts:
+        c_pts = build_c_vecs(pts)
+        current_pts = pts
+
+    Vector2D = c_double*2
+    c_normal = Vector2D(*normal)
+    c_P0 = Vector2D(*P0)
+    n_inters = (c_int*2)()
+    n_pts = c_ulong(len(pts))
+    inters_num_lib.intersections_number(n_inters, c_normal, c_P0, c_pts, n_pts)
+    return list(n_inters)
 
 
 def is_inside_wall(P0, pts):

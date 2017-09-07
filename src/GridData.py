@@ -1,9 +1,18 @@
 import numpy as np
 from itertools import product
-import cfd.boundary_tools as bt
-from cfd.utils import clockwise, wrapping_rectangle
+import boundary_tools as bt
+from utils import clockwise
 import matplotlib.pyplot as plt
 assert plt
+
+
+def wrapping_rectangle(P, sizes):
+    origin = [min(P[dim], P[dim] + sizes[dim]) for dim in range(2)]
+    sizes = [abs(sizes[dim]) for dim in range(2)]
+    return [(origin[0] - 0.5,            origin[1] - 0.5),
+            (origin[0] + sizes[0] + 0.5, origin[1] - 0.5),
+            (origin[0] + sizes[0] + 0.5, origin[1] + sizes[1] + 0.5),
+            (origin[0] - 0.5,            origin[1] + sizes[1] + 0.5)]
 
 
 class CellData:
@@ -57,11 +66,7 @@ class GridData():
              lambda ij: bt.is_inside_wall(ij[::-1], wall))
              for wall in self.walls], axis=0)
 
-        # plt.matshow(self._inside_wall_mask)
-        # plt.show()
-
         self._init_array()
-
         self.system_cells = self.build_mask_from_f(self.is_system)
         self.fluid_cells = self.build_mask_from_f(self.is_fluid)
 
@@ -112,6 +117,7 @@ class GridData():
                         self.midpts_set[n].append(ws.midpt)
 
         for n in range(self.max_n_ws):
+            self.midpts_set[n] = np.array(self.midpts_set[n])
             self.midpts_indices_set.append(
                 self.build_indices(self.midpts_cells_set[n]))
 
@@ -173,6 +179,7 @@ class GridData():
         return indices[indices >= 0][-1] + 1
 
     # Utilities
+    # TODO: Should we move this in the utils.py file?
 
     def nearest_on_grid(self, ij):
         grid_ij = 2*[None]
@@ -216,8 +223,9 @@ class GridData():
             for i in range(self.ny):
                 for j in range(self.nx):
                     if not dir_masks[n, i, j]:
+                        # why the minuses?
                         if (self._evaluate((i, j), masks) and
-                           not self._evaluate((i-si, j-sj), masks)):
+                           not self._evaluate((i - si, j - sj), masks)):
                             dir_masks[n, i, j] = True
 
         return dir_masks

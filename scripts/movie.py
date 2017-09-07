@@ -6,8 +6,8 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import pickle
 import context
-from cfd.GridData import GridData
-from cfd.Solver import Solver
+from GridData import GridData
+from Solver import Solver
 # from matplotlib.animation import FuncAnimation, writers
 
 assert context

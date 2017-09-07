@@ -1,5 +1,5 @@
 import numpy as np
-from cfd.utils import ds_dict
+from utils import ds_dict
 import matplotlib.pyplot as plt
 assert plt
 

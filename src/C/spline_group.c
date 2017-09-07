@@ -4,7 +4,8 @@
 #include <gsl/gsl_spline2d.h>
 
 
-#define IDX2D(i, j, nx) ((i)*(nx) + (j))
+//#define IDX2D(i, j, nx) ((i)*(nx) + (j))
+#define IDX2D(spl, i, j) (spl->nx * (i) + (j))
 
 // gcc -shared -o spline_group.so -fPIC spline_group.c `gsl-config --cflags --libs`
 
@@ -53,7 +54,7 @@ void init_spline_group(spline_group* spl_g, double* u) {
   for (i = 0; i < spl_g->ny; i++) {
     for (j = 0; j < spl_g->nx; j++) {
       gsl_spline2d_set(spl_g->spline, spl_g->za, i, j,
-                       u[IDX2D(i, j, spl_g->nx)]);
+                       u[IDX2D(spl_g, i, j)]);
     }
   }
   gsl_spline2d_init(spl_g->spline, spl_g->ya, spl_g->xa, spl_g->za,

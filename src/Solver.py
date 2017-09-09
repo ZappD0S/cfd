@@ -2,7 +2,9 @@ import numpy as np
 from scipy.sparse import coo_matrix
 from scipy.sparse.linalg import factorized
 from utils import build_inlet_vels, clockwise, ds_dict
+# from VelFieldSplines_old import VelFieldSplines
 from VelFieldSplines import VelFieldSplines
+
 from AnisotropicP import AnisotropicP
 import matplotlib.pyplot as plt
 assert plt
@@ -10,7 +12,8 @@ assert plt
 # TODO: rename FluidFlow?
 class Solver:
 
-    def __init__(self, data, dt, vel0, margin=0.2,  decay_magnitude=1e-6):
+    def __init__(self, data, dt, vel0, margin=0.2,
+                 decay_magnitude=1e-6, spline_type = "bilinear"):
         self.ny, self.nx = self.shape = data.shape
         self.data = data
         self.dx = data.dx
@@ -26,7 +29,8 @@ class Solver:
         self._wallvels_set = [np.empty((2, len(midpts)), dtype=np.double)
                               for midpts in self.data.midpts_set]
 
-        self.vfsplines = VelFieldSplines(self.shape, dt/self.dx)
+        self.vfsplines = VelFieldSplines(
+            self.shape, dt/self.dx, spline_type=spline_type)
         self.vfsplines.init_vels(self._uv).init_data(
             self._wallvels_set, self.data.midpts_set)
 

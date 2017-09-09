@@ -14,10 +14,13 @@ advection_lib = CDLL('../bin/advection.so')
 
 
 class VelFieldSplines:
-    def __init__(self, shape, dt):
+    _types_dict = {"bilinear": 1, "bicubic": 2}
+    def __init__(self, shape, dt, spline_type):
         self.shape = (c_ulong*2)(*shape)
         self.dt = c_double(dt)
-        self.spl_g = splines_lib.Spline2DGroup_alloc(self.shape, c_int(2))
+        self.spline_type = spline_type
+        self.spl_g = splines_lib.Spline2DGroup_alloc(
+            self.shape, c_int(self._types_dict[spline_type]), c_int(2))
 
     def init_data(self, wallvels_set, midpts_set):
         self.midpts_set = []

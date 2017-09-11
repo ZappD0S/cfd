@@ -34,7 +34,8 @@ def add_intersections(pts):
             if delta >= 2:
                 # TODO: non mi piace j, troviamo un altro nome..
                 for j in range(floor(lower)+1, ceil(upper)):
-                    inter = np.empty(2)
+                    #inter = np.empty(2)
+                    inter = 2*[None]
                     inter[dim] = j
                     inter[1-dim] = find_other_coord[dim](P1, P2, j)
                     inter = tuple(inter)
@@ -164,10 +165,10 @@ def compute_free_perimeter(subpts_set, center, pts, cell_bounds):
     side_pts = list(set(side_pts))
     loop = list(sorted(side_pts, key=cmp_to_key(comparator)))
 
-    mid_pt = [0, 0]
+    mid_pt = 2*[0]
     for P1, P2 in pairs(loop, last=True):
         dim, s = get_common_dim_sign(P1, P2)
-        direction = [0, 0]
+        direction = 2*[0]
         # vogliamo gli indici spaziali invertiti
         direction[1-dim] = s
 
@@ -260,18 +261,21 @@ def get_dim_sign(P, center, cell_bounds):
 
 
 def intersections_number(normal, P0, pts):
-    # TODO: if possible, change or remove this part.
-    global current_pts, c_pts
-    if 'current_pts' not in globals() or pts != current_pts:
-        c_pts = build_c_vecs(pts)
-        current_pts = pts
+    try:
+        if pts != intersections_number.pts:
+            intersections_number.c_pts = build_c_vecs(pts)
+            intersections_number.pts = pts
+    except AttributeError:
+            intersections_number.c_pts = build_c_vecs(pts)
+            intersections_number.pts = pts
 
     Vector2D = c_double*2
     c_normal = Vector2D(*normal)
     c_P0 = Vector2D(*P0)
     n_inters = (c_int*2)()
     n_pts = c_ulong(len(pts))
-    inters_num_lib.intersections_number(n_inters, c_normal, c_P0, c_pts, n_pts)
+    inters_num_lib.intersections_number(
+    n_inters, c_normal, c_P0, intersections_number.c_pts, n_pts)
     return list(n_inters)
 
 

@@ -26,7 +26,7 @@ class Solver:
         self._default_inlet_vels = build_inlet_vels(self.shape, margin)
         self._init_inlet_vels()
 
-        self._wallvels_set = [np.empty((2, len(midpts)), dtype=np.double)
+        self._wallvels_set = [np.zeros((2, len(midpts)), dtype=np.double)
                               for midpts in self.data.midpts_set]
 
         self.vfsplines = VelFieldSplines(
@@ -99,6 +99,7 @@ class Solver:
                             row_set[dim].append(row)
                             col_set[dim].append(
                                 self._fluid_indices[i+si, j+sj])
+                            #val_set[dim].append(sign*0.5)
                             val_set[dim].append(sign*fp/4)
 
         self._div_mats = [coo_matrix(
@@ -107,20 +108,17 @@ class Solver:
                           for dim in range(2)]
 
     def _build_wall_div_matrices(self):
-        def empty():
-            return [[] for _ in range(self.data.max_n_ws)]
-
-        self._wall_div_mats = empty()
+        self._wall_div_mats = [[] for _ in range(self.data.max_n_ws)]
 
         for dim in range(2):
-            row_set = empty()
-            col_set = empty()
-            val_set = empty()
+            row_set = [[] for _ in range(self.data.max_n_ws)]
+            col_set = [[] for _ in range(self.data.max_n_ws)]
+            val_set = [[] for _ in range(self.data.max_n_ws)]
 
             for i in range(self.ny):
                 for j in range(self.nx):
-                    if (self.data.is_data_point((i, j)) and
-                       self.data.is_system((i, j))):
+                    if (self.data.is_system((i, j)) and
+                       self.data.is_data_point((i, j))):
                         for n, ws in enumerate(
                                 self.data.cell_ws_iterator((i, j))):
                             index = self.data.midpts_indices_set[n][i, j]
@@ -155,11 +153,12 @@ class Solver:
         self.inlet_vel = vel
 
     def _update_div(self):
-        self.div[self.data.system_cells] = sum(self._div_mats[dim].dot(
-                                self._uv[dim][self.data.fluid_cells])
-                            for dim in range(2))
+        self.div[self.data.system_cells] = sum(
+            self._div_mats[dim].dot(self._uv[dim][self.data.fluid_cells])
+            for dim in range(2))
 
         self.vfsplines.update_wallvels()
+
         for dim in range(2):
             for n in range(self.data.max_n_ws):
                 self.div[self.data.midpts_cells_set[n]] += \
@@ -167,14 +166,11 @@ class Solver:
                         self._wallvels_set[n][dim])
 
     def project(self):
-        self.anis_p.compute_solver_bnd_p(self._bnd_p)
+        self.anis_p.update_solver_bnd_p(self._bnd_p)
         self._coeffs[...] = (self.div[self.data.system_cells]*self.dx
                              - self._bnd_p[self.data.system_cells])
 
         self._p[self.data.system_cells] = self._LUsolve(self._coeffs)
-        self._p[:, 0] = self._p[:, 1]
-        self._p[:, -1] = self._p[:, -2]
-
         self.anis_p.update_vels()
         self._update_div()
 

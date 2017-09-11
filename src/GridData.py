@@ -47,15 +47,16 @@ class GridData():
             self.cell_bounds = cell_bounds
 
         self.walls = [bt.add_intersections(wall)]
-        for sign, y in zip((-1, 1), (0, self.ny - 1)):
+        for y, sign in zip((0, self.ny - 1), (-1, 1)):
             side_wall = wrapping_rectangle((-1, y), (self.nx + 1, 3*sign))
             side_wall = bt.add_intersections(side_wall)
             self.walls.append(side_wall)
 
         self._centers_set = []
         for wall in self.walls:
+            raw_centers = list(bt.data_cells(wall, self.cell_bounds))
             self._centers_set.append(
-                list(bt.data_cells(wall, self.cell_bounds)))
+                [center for center in raw_centers if self.is_on_grid(center[::-1])])
 
         self._data_points_mask = self.build_mask_from_f(
             lambda ij: any(ij[::-1] in centers
@@ -79,29 +80,29 @@ class GridData():
         self.max_n_ws = 0
         self.max_n_ws_midpts = 0
 
-        for wall, centers in zip(self.walls, self._centers_set):
-            for i, j in product(range(self.ny), range(self.nx)):
+        for i in range(self.ny):
+            for j in range(self.nx):
                 self._array[i, j] = CellData()
-                if (j, i) in centers:
-                    subpts_set = bt.get_subpts((j, i), wall, self.cell_bounds)
-                    if subpts_set:
-                        self._array[i, j].free_perimeter = \
-                            bt.compute_free_perimeter(
-                                subpts_set, (j, i), wall, self.cell_bounds)
+                if self.is_inside_wall((i,j)) and not self.is_data_point((i,j)):
+                    self._array[i, j].free_perimeter = CellData.no_free_perimeter
 
-                        n_subpts = len(subpts_set)
-                        if n_subpts > self.max_n_ws:
-                            self.max_n_ws = n_subpts
-
-                        for subpts in subpts_set:
-                            midpts, normals, L = bt.compute_len_midpt_normal(
-                                subpts, (j, i), wall)
-                            self._array[i, j].add_wall_section(
-                                *midpts, *normals, L)
-
-                elif self.is_inside_wall((i, j)):
+        for wall, centers in zip(self.walls, self._centers_set):
+            for (j, i) in centers:
+                subpts_set = bt.get_subpts((j, i), wall, self.cell_bounds)
+                if subpts_set:
                     self._array[i, j].free_perimeter = \
-                        CellData.no_free_perimeter
+                        bt.compute_free_perimeter(
+                            subpts_set, (j, i), wall, self.cell_bounds)
+
+                    n_subpts = len(subpts_set)
+                    if n_subpts > self.max_n_ws:
+                        self.max_n_ws = n_subpts
+
+                    for subpts in subpts_set:
+                        midpts, normals, L = bt.compute_len_midpt_normal(
+                            subpts, (j, i), wall)
+                        self._array[i, j].add_wall_section(
+                            *midpts, *normals, L)
 
     def _build_midpts_data(self):
         self.midpts_set = [[] for _ in range(self.max_n_ws)]
@@ -182,14 +183,12 @@ class GridData():
     # TODO: Should we move this in the utils.py file?
 
     def nearest_on_grid(self, ij):
-        grid_ij = 2*[None]
+        grid_ij = list(ij)
         for dim in range(2):
             if ij[dim] < 0:
                 grid_ij[dim] = 0
             elif ij[dim] >= self.shape[dim]:
                 grid_ij[dim] = self.shape[dim] - 1
-            else:
-                grid_ij[dim] = ij[dim]
 
         return tuple(grid_ij)
 
@@ -215,20 +214,6 @@ class GridData():
                     count += 1
 
         return indices
-
-    def build_dir_masks(self, *masks):
-        dir_masks = np.zeros((4, *self.shape), dtype=np.bool)
-
-        for n, (si, sj) in enumerate(clockwise):
-            for i in range(self.ny):
-                for j in range(self.nx):
-                    if not dir_masks[n, i, j]:
-                        # why the minuses?
-                        if (self._evaluate((i, j), masks) and
-                           not self._evaluate((i - si, j - sj), masks)):
-                            dir_masks[n, i, j] = True
-
-        return dir_masks
 
     def _evaluate(self, ij, masks, op='or'):
         results = []

@@ -13,7 +13,7 @@ assert plt
 class Solver:
 
     def __init__(self, data, dt, vel0, margin=0.2,
-                 decay_magnitude=1e-6, spline_type = "bilinear"):
+                 decay_magnitude=1e-6, spline_type="bilinear"):
         self.ny, self.nx = self.shape = data.shape
         self.data = data
         self.dx = data.dx
@@ -147,10 +147,11 @@ class Solver:
 
     def update_inlet_vels(self, vel):
         if vel and not self.inlet_vel:
+            self.inlet_vel = vel
             self._init_inlet_vels()
         else:
             self._uv[0][:, 0] = vel*self._default_inlet_vels
-        self.inlet_vel = vel
+            self.inlet_vel = vel
 
     def _update_div(self):
         self.div[self.data.system_cells] = sum(

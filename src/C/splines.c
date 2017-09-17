@@ -37,8 +37,8 @@ void bilinear_eval(Spline2D* spl, double* point,  double* z)
 	*z = 0;
 	for (i = 0; i < 2; ++i) {
   	for (j = 0; j < 2; ++j) {
-    	xfrac = (j) ? dx : 1. - dx;
-    	yfrac = (i) ? dy : 1. - dy;
+    	xfrac = (j) ? dx : 1 - dx;
+    	yfrac = (i) ? dy : 1 - dy;
     	*z += xfrac * yfrac * spl->data[IDX2D(spl, yi + i, xi + j)];
   	}
 	}

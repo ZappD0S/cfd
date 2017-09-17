@@ -2,7 +2,7 @@ import numpy as np
 from math import ceil, floor
 from itertools import product
 from functools import cmp_to_key
-from ctypes import CDLL, c_double, c_int, c_ulong
+from ctypes import CDLL, pointer, c_double, c_int, c_ulong
 from utils import pairs, build_c_vecs
 
 inters_num_lib = CDLL('../bin/intersections_number.so')
@@ -103,8 +103,10 @@ def compute_len_midpt_normal(subpts, center, pts, N=1):
             theta = slope_ang(*nb_pts)
 
         normal = np.array([np.cos(theta+np.pi/2), np.sin(theta+np.pi/2)])
-        normal[np.abs(normal) < 1e-15] = 0
-        normal *= get_inward_normal_sign(normal, mid_pts[-1], pts)
+        testP = [mid_pts[-1][i] + 1e-1*normal[i] for i in range(2)]
+        if not is_inside_wall(testP, pts):
+           normal = -normal
+        # normal *= get_inward_normal_sign(normal, mid_pts[-1], pts)
         normals.append(normal)
 
     return mid_pts, normals, L
@@ -260,40 +262,38 @@ def get_dim_sign(P, center, cell_bounds):
         raise ValueError('error!')
 
 
-def intersections_number(normal, P0, pts):
+def is_inside_wall(P, pts):
     try:
-        if pts != intersections_number.pts:
-            intersections_number.c_pts = build_c_vecs(pts)
-            intersections_number.pts = pts
+        if pts != is_inside_wall.pts:
+            is_inside_wall.c_pts = build_c_vecs(pts)
+            is_inside_wall.pts = pts
     except AttributeError:
-            intersections_number.c_pts = build_c_vecs(pts)
-            intersections_number.pts = pts
+            is_inside_wall.c_pts = build_c_vecs(pts)
+            is_inside_wall.pts = pts
 
     Vector2D = c_double*2
-    c_normal = Vector2D(*normal)
-    c_P0 = Vector2D(*P0)
-    n_inters = (c_int*2)()
+    c_P = Vector2D(*P)
+    res = pointer(c_int(0))
     n_pts = c_ulong(len(pts))
-    inters_num_lib.intersections_number(
-    n_inters, c_normal, c_P0, intersections_number.c_pts, n_pts)
-    return list(n_inters)
+    inters_num_lib.is_inside(
+        res, c_P, is_inside_wall.c_pts, n_pts)
+    return bool(res[0])
 
 
-def is_inside_wall(P0, pts):
-    same_side, opp_side = intersections_number((0, 1), P0, pts)
-    if same_side % 2 == opp_side % 2:
-        return same_side % 2 != 0
-    else:
-        print('P0:', P0)
-        raise ValueError('problem!')
-
-
-def get_inward_normal_sign(normal, P0, pts):
-    same_side, opp_side = intersections_number(normal, P0, pts)
-    if same_side % 2 == opp_side % 2:
-        return -1 if same_side % 2 == 0 else 1
-    else:
-        print('P0:', P0)
-        print('normal:', normal)
-        print('same_side, opp_side', same_side, opp_side)
-        raise ValueError('problem!')
+# def intersections_number(normal, P0, pts):
+#     try:
+#         if pts != intersections_number.pts:
+#             intersections_number.c_pts = build_c_vecs(pts)
+#             intersections_number.pts = pts
+#     except AttributeError:
+#             intersections_number.c_pts = build_c_vecs(pts)
+#             intersections_number.pts = pts
+#
+#     Vector2D = c_double*2
+#     c_normal = Vector2D(*normal)
+#     c_P0 = Vector2D(*P0)
+#     net_inters = (c_int*2)()
+#     n_pts = c_ulong(len(pts))
+#     inters_num_lib.line_intersections(
+#         net_inters, c_normal, c_P0, intersections_number.c_pts, n_pts)
+#     return list(net_inters)

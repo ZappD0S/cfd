@@ -16,32 +16,27 @@ dx = 1.
 
 # # # x0, y0 = 0.2*sizes[1], sizes[0]/2
 # # # R = 0.3*ny
-# #
-# x0, y0 = sizes[1]/3, sizes[0]/2
-# R = 0.18*sizes[0]
 #
-# theta = np.linspace(0, 2*np.pi, 1000, endpoint=False)
-# x, y = x0+R*np.cos(theta), y0+R*np.sin(theta)
-# circle = list(zip(x, y))
-# data = GridData(sizes, circle, dx)
-# pickle.dump(data, open("data.p", "wb"))
+x0, y0 = 0.3*sizes[1], sizes[0]/2
+R = 0.2*ny
+
+theta = np.linspace(0, 2*np.pi, 1000, endpoint=False)
+x, y = x0+R*np.cos(theta), y0+R*np.sin(theta)
+circle = list(zip(x, y))
+data = GridData(sizes, circle, dx)
+pickle.dump(data, open("data.p", "wb"))
 
 ############################################################
 
 dt = 0.01
 vel0 = 150.
 
-data = pickle.load(open("./data.p", "rb"))
+# data = pickle.load(open("./data.p", "rb"))
 solv = Solver(data, dt, vel0=vel0, margin=0.1, spline_type = "bilinear")
 
 for i in range(500):
     solv.project()
     solv.advect()
-    # if i % 10 == 0:
-    # plt.matshow(solv._p - np.min(solv._p))
-    # plt.matshow(solv.div)
-    # plt.matshow(solv.get_magnitude_field())
-    # plt.show()
     print(i)
 
 solv.close()

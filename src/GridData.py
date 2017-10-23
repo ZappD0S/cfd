@@ -83,7 +83,7 @@ class GridData():
         for i in range(self.ny):
             for j in range(self.nx):
                 self._array[i, j] = CellData()
-                if self.is_inside_wall((i,j)) and not self.is_data_point((i,j)):
+                if self.is_inside_wall((i, j)) and not self.is_data_point((i, j)):
                     self._array[i, j].free_perimeter = CellData.no_free_perimeter
 
         for wall, centers in zip(self.walls, self._centers_set):

@@ -3,11 +3,11 @@
 
 // gcc -fPIC -O2 advection.c -shared -o ../../bin/advection.so
 
-#define swap(a, b) do {   \
-  double* tmp = *a;       \
-  *a = *b;                \
-  *b = tmp;               \
-} while(0)
+void swap(double** a, double** b) {
+    double* tmp = *a;
+    *a = *b;
+    *b = tmp;
+}
 
 
 void advect_vels(Spline2DGroup* spl_g, double** uv, double dt)
@@ -16,9 +16,9 @@ void advect_vels(Spline2DGroup* spl_g, double** uv, double dt)
   size_t i, j;
   const double step_coeffs[] = {0.5, 0.5, 1};
   const double k_coeffs[] = {6, 3, 3, 6};
-  double k0[2], k[2], ds[2];
-  double* k_ptr = k;
-  double* k0_ptr = k0;
+  double k0_arr[2], k_arr[2], ds[2];
+  double* k = k_arr;
+  double* k0 = k0_arr;
 
   for (i = 1; i < spl_g->ny - 1; ++i) {
     for (j = 1; j < spl_g->nx - 1; ++j) {
@@ -28,7 +28,7 @@ void advect_vels(Spline2DGroup* spl_g, double** uv, double dt)
         ds[dim] = k[dim]/k_coeffs[0];
 
       for (n = 1; n < 4; ++n) {
-        swap(&k_ptr, &k0_ptr);
+        swap(&k, &k0);
         Spline2DGroup_unbounded_eval(
           spl_g,
           j - dt*step_coeffs[n-1]*k0[0],

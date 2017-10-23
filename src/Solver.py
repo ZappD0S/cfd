@@ -2,10 +2,8 @@ import numpy as np
 from scipy.sparse import coo_matrix
 from scipy.sparse.linalg import factorized
 from utils import build_inlet_vels, clockwise, ds_dict
-# from VelFieldSplines_old import VelFieldSplines
 from VelFieldSplines import VelFieldSplines
-
-from AnisotropicP import AnisotropicP
+from PressureStep import PressureStep
 import matplotlib.pyplot as plt
 assert plt
 
@@ -49,7 +47,7 @@ class Solver:
 
         self._p = np.zeros(self.shape, dtype=np.double)
         self._bnd_p = np.zeros_like(self._p)
-        self.anis_p = AnisotropicP(self._p, self._uv, data)
+        self._p_step = PressureStep(self._p, self._uv, data)
 
         self._build_p_matrix()
         self._LUsolve = factorized(self._p_mat)
@@ -99,8 +97,8 @@ class Solver:
                             row_set[dim].append(row)
                             col_set[dim].append(
                                 self._fluid_indices[i+si, j+sj])
-                            #val_set[dim].append(sign*0.5)
-                            val_set[dim].append(sign*fp/4)
+                            val_set[dim].append(sign*0.5)
+                            # val_set[dim].append(sign*fp/4)
 
         self._div_mats = [coo_matrix(
                             (val_set[dim], (row_set[dim], col_set[dim])),
@@ -158,21 +156,21 @@ class Solver:
             self._div_mats[dim].dot(self._uv[dim][self.data.fluid_cells])
             for dim in range(2))
 
-        self.vfsplines.update_wallvels()
+        # self.vfsplines.update_wallvels()
 
-        for dim in range(2):
-            for n in range(self.data.max_n_ws):
-                self.div[self.data.midpts_cells_set[n]] += \
-                    self._wall_div_mats[n][dim].dot(
-                        self._wallvels_set[n][dim])
+#        for dim in range(2):
+#            for n in range(self.data.max_n_ws):
+#                self.div[self.data.midpts_cells_set[n]] += \
+#                    self._wall_div_mats[n][dim].dot(
+#                        self._wallvels_set[n][dim])
 
     def project(self):
-        self.anis_p.update_solver_bnd_p(self._bnd_p)
+        self._p_step.update_solver_bnd_p(self._bnd_p)
         self._coeffs[...] = (self.div[self.data.system_cells]*self.dx
                              - self._bnd_p[self.data.system_cells])
 
         self._p[self.data.system_cells] = self._LUsolve(self._coeffs)
-        self.anis_p.update_vels()
+        self._p_step.update_vels()
         self._update_div()
 
     def advect(self):

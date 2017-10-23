@@ -89,8 +89,8 @@ void is_inside2(int* res, double* P, double** pts, size_t n_pts)
     P1 = pts[i];
     P2 = pts[j];
 
-    if (((P1[1] >= P[1]) != (P2[1] >= P[1])) &&
-        (P[0] <= (P2[0] - P1[0]) * (P[1] - P1[1]) / (P2[1] - P1[1]) + P1[0]))
+    if (((P1[1] > P[1]) != (P2[1] > P[1])) &&
+        (P[0] < (P2[0] - P1[0]) * (P[1] - P1[1]) / (P2[1] - P1[1]) + P1[0]))
         *res = !(*res);
   }
 }

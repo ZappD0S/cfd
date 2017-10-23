@@ -30,6 +30,8 @@ dt = 0.01
 # data = GridData(sizes, circle, dx)
 # pickle.dump(data, open("data_large.p", "wb"))
 
+###########################
+
 data = pickle.load(open("data_large.p", "rb"))
 
 N_per_vel = 1000
@@ -37,8 +39,7 @@ N_per_vel = 1000
 # n_vels = 2
 # vels = np.linspace(0, max_vel, n_vels+1)[1:]
 
-vels = [50, 100, 200]
-# vels = [100]
+vels = [50, 100]
 n_vels = len(vels)
 
 solv = Solver(data, dt, vel0=0, margin=0.1, spline_type='bilinear')
@@ -81,7 +82,7 @@ for n, vel in enumerate(vels):
         solv.project()
         im_abs.set_data(solv.get_magnitude_field())
         # im_abs.autoscale()
-        fig1.savefig(os.path.abspath('frames/abs-%d.png') % (n*N_per_vel + i),
+        fig1.savefig(os.path.abspath('frames/abs2-%d.png') % (n*N_per_vel + i),
                      bbox_inches='tight', dpi=120)
 
         # im_curl.set_data(solv.get_curl_field())
@@ -89,6 +90,8 @@ for n, vel in enumerate(vels):
         # fig2.savefig(os.path.abspath('frames/curl-%d.png') % (n*N_per_vel + i),
         #              bbox_inches='tight', dpi=120)
         solv.advect()
+
+###########################
 
 # ani = FuncAnimation(fig, animate, frames=N_per_vel*n_vels, interval=30)
 # writer = writers['ffmpeg'](fps=30)

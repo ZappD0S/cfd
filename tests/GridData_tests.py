@@ -23,7 +23,7 @@ dx = 1
 # x0, y0 = 0.3*sizes[1], sizes[0]/2
 # R = 0.2*ny
 
-ny, nx = sizes = (120, 360)
+ny, nx = sizes = (80, 200)
 x0, y0 = 0.2*sizes[1], sizes[0]/2
 R = 0.18*ny
 

@@ -105,6 +105,7 @@ def compute_len_midpt_normal(subpts, center, pts, N=1):
         normal = np.array([np.cos(theta+np.pi/2), np.sin(theta+np.pi/2)])
         testP = [mid_pts[-1][i] + 1e-1*normal[i] for i in range(2)]
         if not is_inside_wall(testP, pts):
+        # if is_inside_wall(testP, pts):
            normal = -normal
         # normal *= get_inward_normal_sign(normal, mid_pts[-1], pts)
         normals.append(normal)
@@ -275,7 +276,7 @@ def is_inside_wall(P, pts):
     c_P = Vector2D(*P)
     res = pointer(c_int(0))
     n_pts = c_ulong(len(pts))
-    inters_num_lib.is_inside(
+    inters_num_lib.is_inside2(
         res, c_P, is_inside_wall.c_pts, n_pts)
     return bool(res[0])
 
